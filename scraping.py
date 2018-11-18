@@ -12,12 +12,12 @@ import re
 word_list = ['원전']
 
 def joongang_scrape(word_list):
-    ## 원하는 word List의 제목을 가진 기사를 모두 scrape하는 함수 ##
+    ## 원하는 word List의 제목을 가진 기사를 최근 3년 기사를 scrape하는 함수 ##
     articleList = [] # parse 결과 담는 list
     for word in word_list: # 관련 단어 모두 검색
         url = "https://search.joins.com/TotalNews?page=1&Keyword="
         url += parse.quote(word)
-        url += "&SortType=New&ScopeType=Title&SourceGroupType=Joongang&SearchCategoryType=TotalNews"
+        url += "&PeriodType=DirectInput&StartSearchDate=01%2F01%2F2015%2000%3A00%3A00&EndSearchDate=11%2F18%2F2018%2000%3A00%3A00&SortType=New&ScopeType=Title&SourceGroupType=Joongang&SearchCategoryType=TotalNews"
         # selenium drvier (chromedriver download)
         html = requests.get(url)
         soup = BeautifulSoup(html.text, 'html.parser')
@@ -45,8 +45,9 @@ def joongang_scrape(word_list):
                 articleList.append(tmp_list)
             print("=== %i page completed / total page %i" %(i, total_page_num))
     return articleList
-            
-            
+
+res = pd.DataFrame(articleList)         
+res.to_csv("d:/project_data/article_1.csv")       
             
             
             
