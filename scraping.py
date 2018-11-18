@@ -84,4 +84,5 @@ def hani_scrape(word_list):
 if __name__ == "__main__":
     ## parameter ##
     word_list = ['원전', '신고리']
-    res_list = hani_scrape(word_list)
+    res_list_1 = joongang_scrape(word_list)
+    res_list_2 = hani_scrape(word_list)
