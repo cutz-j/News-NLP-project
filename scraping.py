@@ -30,20 +30,22 @@ def joongang_scrape(word_list):
                 tmp_list = []
                 url_article = res.find("a").attrs["href"] # article href 주소 따오기
                 tmp_list.append(res.find("a").text) # 제목 리스트 추가
-                html_art = requests.get(url_article) # article 본문 접속
-                soup_art = BeautifulSoup(html_art.text, 'html.parser')
-                results_art = soup_art.select("div#article_body")
-                article = results_art[0].text.strip()
-                if "관련기사" in article:
-                    reg = re.compile("  관련기사[\w\W]{,80}  \xa0")
+                try:
+                    html_art = requests.get(url_article) # article 본문 접속
+                    soup_art = BeautifulSoup(html_art.text, 'html.parser')
+                    results_art = soup_art.select("div#article_body")
+                    article = results_art[0].text.strip()
+                    article = article[:-article[::-1].index(".다")]
+                    if "관련기사" in article:
+                        reg = re.compile("  관련기사[\w\W]{,80}  \xa0")
+                        article = re.sub(reg, "", article)
+                    article = article.replace("\xa0", "").replace("  ", "")
+                    reg = re.compile("\[[가-힣a-zA-Z0-9=-_/.,:;]*\]")
                     article = re.sub(reg, "", article)
-                article = article.replace("\xa0", "").replace("  ", "")
-                article = article[:-article[::-1].index(".다")]
-                reg = re.compile("\[[가-힣a-zA-Z0-9=-_/.,:;]*\]")
-                article = re.sub(reg, "", article)
-                time.sleep(0.2)
-                tmp_list.append(article)
-                articleList.append(tmp_list)
+                    time.sleep(0.3)
+                    tmp_list.append(article)
+                    articleList.append(tmp_list)
+                except: print("j error")
             print("%i page completed / total page %i" %(i, total_page_num))
             url = url.replace("page=%i" %(i-1), "page=%i" %(i))
             html = requests.get(url)
@@ -68,29 +70,33 @@ def hani_scrape(word_list):
             for res in results: # 해당 페이지의 기사 10건 접속
                 if word not in res.text: # 제목에 word가 없다면, continue
                     continue
+                tmp_arr = np.array(article_list)
+                if res.text in list(tmp_arr[:,0]):
+                    continue
                 tmp_list = []
                 tmp_list.append(res.text)
                 url_article = res.attrs["href"] # article href 주소 따오기
-                html_art = requests.get(url_article) # article 본문 접속
-                soup_art = BeautifulSoup(html_art.text, 'html.parser')
-                results_art = soup_art.select("div.text")
-                results_art = results_art[0].text.strip()
-                if "※ 그래픽을 누르면 확대됩니다." in results_art:
-                    results_art = results_art.replace("※ 그래픽을 누르면 확대됩니다.", "")
-                reg_grp = re.compile("그래픽_[가-힣]{3}")
-                if re.findall(reg_grp, results_art) != []:
-                    results_art = re.sub(reg_grp, "", results_art)
-                results_art = results_art[:-results_art[::-1].index(".다")]
-                if "@hani.co.kr" in results_art:
-                    reg = re.compile("[\w\W]{3,7}[\w\W]{3,5}[a-zA-Z]+@hani.co.kr")
-                    results_art = re.sub(reg, "", results_art)
-                if "  " in results_art:
-                    results_art = results_art[results_art.index("  "):]
-                try: results_art = results_art.replace("  ", "")
-                except: pass
-                tmp_list.append(results_art)
-                article_list.append(tmp_list)
-                time.sleep(0.2)
+                try:
+                    html_art = requests.get(url_article) # article 본문 접속
+                    soup_art = BeautifulSoup(html_art.text, 'html.parser')
+                    results_art = soup_art.select("div.text")
+                    results_art = results_art[0].text.strip()
+                    if "※ 그래픽을 누르면 확대됩니다." in results_art:
+                        results_art = results_art.replace("※ 그래픽을 누르면 확대됩니다.", "")
+                    reg_grp = re.compile("그래픽_[가-힣]{3}")
+                    if re.findall(reg_grp, results_art) != []:
+                        results_art = re.sub(reg_grp, "", results_art)
+                    if "@hani.co.kr" in results_art:
+                        reg = re.compile("[\w\W]{3,7}[\w\W]{3,5}[a-zA-Z]+@hani.co.kr")
+                        results_art = re.sub(reg, "", results_art)
+                    if "  " in results_art:
+                        results_art = results_art[results_art.index("  "):]
+                    results_art = results_art.replace("  ", "")
+                    results_art = results_art[:-results_art[::-1].index(".다")]
+                    tmp_list.append(results_art)
+                    article_list.append(tmp_list)
+                    time.sleep(0.3)
+                except: print("h error")
             print("%i page completed / total page %i" %(i, total_page_num))
             url = url.replace("pageseq=%i" %(i-1), "pageseq=%i" %(i))
             html = requests.get(url)
@@ -102,3 +108,5 @@ if __name__ == "__main__":
     word_list = ['원전', '신고리']
     res_list_1 = joongang_scrape(word_list)
     res_list_2 = hani_scrape(word_list)
+    res_1 = pd.DataFrame(res_list_1).drop_duplicates().to_excel("d:/news_project/res1_j.xlsx", header=False, index=False, encoding='utf8')
+    res_2 = pd.DataFrame(res_list_2).drop_duplicates().to_excel("d:/news_project/res1_h.xlsx", header=False, index=False, encoding='utf-8')
