@@ -22,25 +22,32 @@ def joongang_scrape(word_list):
         total_page_num = soup.select("span.total_number")[0].text
         reg = re.compile("-[0-9]+")
         total_page_num = int(re.findall(reg, total_page_num)[0][1:])
-        for i in range(1, total_page_num): # 총 출력 페이지만큼 페이지 이동
-            url.replace("page=1", "page=%i" %(i))
-            html = requests.get(url)
-            soup = BeautifulSoup(html.text, 'html.parser')
+        for i in range(2, total_page_num): # 총 출력 페이지만큼 페이지 이동
             results = soup.select("div.text")
             for res in results: # 해당 페이지의 기사 10건 접속
+                if word not in res.find("a").text: # 제목에 word가 없다면, continue
+                    continue
                 tmp_list = []
                 url_article = res.find("a").attrs["href"] # article href 주소 따오기
                 tmp_list.append(res.find("a").text) # 제목 리스트 추가
                 html_art = requests.get(url_article) # article 본문 접속
                 soup_art = BeautifulSoup(html_art.text, 'html.parser')
                 results_art = soup_art.select("div#article_body")
-                article = results_art[0].text.strip()[:-33]
-                reg = re.compile("  관련기사[\w\W]{,80}  \xa0")
-                article = re.sub(reg, "", article).replace("\xa0", "").replace("  ", "")
-                time.sleep(0.5)
+                article = results_art[0].text.strip()
+                if "관련기사" in article:
+                    reg = re.compile("  관련기사[\w\W]{,80}  \xa0")
+                    article = re.sub(reg, "", article)
+                article = article.replace("\xa0", "").replace("  ", "")
+                article = article[:-article[::-1].index(".다")]
+                reg = re.compile("\[[가-힣a-zA-Z0-9=-_/.,:;]*\]")
+                article = re.sub(reg, "", article)
+                time.sleep(0.2)
                 tmp_list.append(article)
                 articleList.append(tmp_list)
-            print("=== %i page completed / total page %i" %(i, total_page_num))
+            print("%i page completed / total page %i" %(i, total_page_num))
+            url = url.replace("page=%i" %(i-1), "page=%i" %(i))
+            html = requests.get(url)
+            soup = BeautifulSoup(html.text, 'html.parser')
     return articleList
             
 ## 한겨레 최근 3년 기사를 scrape하는 함수 ##
@@ -56,29 +63,38 @@ def hani_scrape(word_list):
         # 총 출력 페이지 parsing #
         total_page_num = soup.select("span.total")[0].text
         total_page_num = int(int(total_page_num[:-1]) / 10)
-        for i in range(0, total_page_num): # 총 출력 페이지만큼 페이지 이동
-            url.replace("pageseq=0", "pageseq=%i" %(0))
-            html = requests.get(url)
-            soup = BeautifulSoup(html.text, 'html.parser')
+        for i in range(1, total_page_num): # 총 출력 페이지만큼 페이지 이동
             results = soup.select("dt > a")
             for res in results: # 해당 페이지의 기사 10건 접속
-                tmp_list = []
                 if word not in res.text: # 제목에 word가 없다면, continue
                     continue
+                tmp_list = []
                 tmp_list.append(res.text)
                 url_article = res.attrs["href"] # article href 주소 따오기
                 html_art = requests.get(url_article) # article 본문 접속
                 soup_art = BeautifulSoup(html_art.text, 'html.parser')
                 results_art = soup_art.select("div.text")
                 results_art = results_art[0].text.strip()
+                if "※ 그래픽을 누르면 확대됩니다." in results_art:
+                    results_art = results_art.replace("※ 그래픽을 누르면 확대됩니다.", "")
+                reg_grp = re.compile("그래픽_[가-힣]{3}")
+                if re.findall(reg_grp, results_art) != []:
+                    results_art = re.sub(reg_grp, "", results_art)
+                results_art = results_art[:-results_art[::-1].index(".다")]
                 if "@hani.co.kr" in results_art:
                     reg = re.compile("[\w\W]{3,7}[\w\W]{3,5}[a-zA-Z]+@hani.co.kr")
                     results_art = re.sub(reg, "", results_art)
-                    res = results_art.replace("\n", "").replace("\r", "").replace("  ", "")
-                tmp_list.append(res)
+                if "  " in results_art:
+                    results_art = results_art[results_art.index("  "):]
+                try: results_art = results_art.replace("  ", "")
+                except: pass
+                tmp_list.append(results_art)
                 article_list.append(tmp_list)
-                time.sleep(0.5)
-            print("=== %i page completed / total page %i" %(i, total_page_num))
+                time.sleep(0.2)
+            print("%i page completed / total page %i" %(i, total_page_num))
+            url = url.replace("pageseq=%i" %(i-1), "pageseq=%i" %(i))
+            html = requests.get(url)
+            soup = BeautifulSoup(html.text, 'html.parser')
     return article_list
 
 if __name__ == "__main__":
