@@ -8,12 +8,13 @@ import os
 os.chdir("d:/news_project/")
 j_noun = pd.read_excel("j_noun.xlsx", header=None, index=None)
 h_noun = pd.read_excel("h_noun.xlsx", header=None, index=None)
-j_noun.columns = ['body', 'header']
-h_noun.columns = ['body', 'header']
 
-j_noun = j_noun.reindex(columns=['header', 'body'])
-h_noun = h_noun.reindex(columns=['header', 'body'])
+# 결측치 처리 #
+j_noun = j_noun.dropna()
+h_noun = h_noun.dropna()
 
+j_noun = np.array(j_noun)
+h_noun = np.array(h_noun)
 
 tfidf = TfidfVectorizer()
-tfs = tfidf.fit_transform(h_noun.iloc[0,0][1:-1])
+tfs = tfidf.fit_transform(j_noun[:,1])
